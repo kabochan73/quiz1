@@ -39,6 +39,11 @@ class Quiz extends Model
      */
     protected $table = 'quizzes';
 
+    /** 1クイズに登録できる問題数の下限・上限。公開の条件にも使う。 */
+    public const int MIN_QUESTIONS = 1;
+
+    public const int MAX_QUESTIONS = 30;
+
     protected $fillable = [
         'user_id',
         'category_id',
@@ -109,5 +114,15 @@ class Quiz extends Model
     public function attempts(): HasMany
     {
         return $this->hasMany(QuizAttempt::class);
+    }
+
+    /**
+     * 公開できる問題数（MIN_QUESTIONS〜MAX_QUESTIONS）に収まっているか。
+     * question_count は QuizCounters が保つ非正規化カラム。
+     */
+    public function hasPublishableQuestionCount(): bool
+    {
+        return $this->question_count >= self::MIN_QUESTIONS
+            && $this->question_count <= self::MAX_QUESTIONS;
     }
 }

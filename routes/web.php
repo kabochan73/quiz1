@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QuizController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,6 +20,11 @@ Route::middleware('auth')->group(function () {
 
     // カテゴリ管理（詳細ページは持たないので show は除外）
     Route::resource('categories', CategoryController::class)->except('show');
+
+    // クイズ管理
+    Route::resource('quizzes', QuizController::class);
+    Route::patch('quizzes/{quiz}/publish', [QuizController::class, 'publish'])->name('quizzes.publish');
+    Route::patch('quizzes/{quiz}/unpublish', [QuizController::class, 'unpublish'])->name('quizzes.unpublish');
 });
 
 require __DIR__.'/auth.php';
