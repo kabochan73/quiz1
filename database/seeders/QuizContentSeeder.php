@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\Quiz\QuizCounters;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -200,11 +201,7 @@ class QuizContentSeeder extends Seeder
             }
         }
 
-        // 非正規化カラムを更新する。
-        // TODO(v1): 問題の追加・削除・編集で毎回呼ぶ必要があるので、サービス層（QuizCounters）に切り出す。
-        $quiz->update([
-            'question_count' => $quiz->questions()->count(),
-            'total_max_score' => $quiz->questions()->sum('max_score'),
-        ]);
+        // 非正規化カラム（question_count / total_max_score）を再計算する。
+        app(QuizCounters::class)->sync($quiz);
     }
 }
