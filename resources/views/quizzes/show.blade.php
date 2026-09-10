@@ -35,18 +35,15 @@
                     <p class="text-sm text-gray-700 whitespace-pre-line">{{ $quiz->description }}</p>
                 @endif
 
-                {{-- 公開切り替え --}}
                 <div class="pt-2">
                     @if ($quiz->is_published)
                         <form method="POST" action="{{ route('quizzes.unpublish', $quiz) }}">
-                            @csrf
-                            @method('PATCH')
+                            @csrf @method('PATCH')
                             <x-secondary-button>非公開に戻す</x-secondary-button>
                         </form>
                     @else
                         <form method="POST" action="{{ route('quizzes.publish', $quiz) }}">
-                            @csrf
-                            @method('PATCH')
+                            @csrf @method('PATCH')
                             <x-primary-button>公開する</x-primary-button>
                         </form>
                         <p class="mt-1 text-xs text-gray-500">
@@ -56,20 +53,55 @@
                 </div>
             </div>
 
-            {{-- 問題一覧（追加・並べ替えは次のステップで実装） --}}
-            <div class="bg-white shadow sm:rounded-lg divide-y">
-                <div class="p-4 text-sm font-medium text-gray-900">問題</div>
-                @forelse ($quiz->questions as $question)
-                    <div class="p-4">
-                        <div class="text-sm text-gray-800">{{ $question->displayTitle() }}</div>
-                        <div class="text-sm text-gray-500 truncate">{{ $question->body }}</div>
-                        <div class="mt-1 text-xs text-gray-400">
-                            観点 {{ $question->rubricCriteria->count() }} / 配点 {{ $question->max_score }}
+            {{-- 問題一覧 + 管理 --}}
+            <div class="bg-white shadow sm:rounded-lg">
+                <div class="flex items-center justify-between p-4 border-b">
+                    <span class="text-sm font-medium text-gray-900">問題（{{ $quiz->question_count }} / {{ \App\Models\Quiz::MAX_QUESTIONS }}）</span>
+                    @if ($quiz->question_count < \App\Models\Quiz::MAX_QUESTIONS)
+                        <a href="{{ route('quizzes.questions.create', $quiz) }}" class="text-sm text-indigo-600 hover:underline">＋ 問題を追加</a>
+                    @endif
+                </div>
+
+                @if ($quiz->questions->isEmpty())
+                    <div class="p-4 text-gray-500 text-sm">まだ問題がありません。</div>
+                @else
+                    {{-- ↑↓ で並べ替え、変更があれば「順番を保存」を表示 --}}
+                    <div x-data="{
+                            items: @js($quiz->questions->map(fn ($q) => ['id' => $q->id, 'label' => $q->displayTitle()])->values()),
+                            original: @js($quiz->questions->pluck('id')->values()),
+                            get changed() { return JSON.stringify(this.items.map(i => i.id)) !== JSON.stringify(this.original); },
+                            move(from, to) {
+                                if (to < 0 || to >= this.items.length) return;
+                                const moved = this.items.splice(from, 1)[0];
+                                this.items.splice(to, 0, moved);
+                            },
+                         }">
+                        <ul class="divide-y">
+                            <template x-for="(item, i) in items" :key="item.id">
+                                <li class="flex items-center justify-between p-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex flex-col">
+                                            <button type="button" @click="move(i, i - 1)" class="text-gray-400 hover:text-gray-700 text-xs leading-none">▲</button>
+                                            <button type="button" @click="move(i, i + 1)" class="text-gray-400 hover:text-gray-700 text-xs leading-none">▼</button>
+                                        </div>
+                                        <span class="text-sm text-gray-800" x-text="`${i + 1}. ${item.label}`"></span>
+                                    </div>
+                                    <a :href="`/questions/${item.id}/edit`" class="text-sm text-indigo-600 hover:underline">編集</a>
+                                </li>
+                            </template>
+                        </ul>
+
+                        <div class="p-4 border-t" x-show="changed" style="display: none;">
+                            <form method="POST" action="{{ route('quizzes.questions.reorder', $quiz) }}">
+                                @csrf @method('PATCH')
+                                <template x-for="item in items" :key="item.id">
+                                    <input type="hidden" name="ids[]" :value="item.id">
+                                </template>
+                                <x-primary-button>順番を保存</x-primary-button>
+                            </form>
                         </div>
                     </div>
-                @empty
-                    <div class="p-4 text-gray-500 text-sm">まだ問題がありません。</div>
-                @endforelse
+                @endif
             </div>
         </div>
     </div>
