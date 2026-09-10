@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
+        // 単一ユーザー運用なので、固定のテストユーザーを1名だけ用意する。
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // サンプルのカテゴリ・タグ・クイズ・問題・ルーブリックを投入する。
+        $this->call(QuizContentSeeder::class);
     }
 }
